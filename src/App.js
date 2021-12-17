@@ -4,10 +4,12 @@ import abi from './abi'
 import './App.css';
 
 function App() {
-  const [ethereum] = useState(window.ethereum);
+  const [ethereum] = useState(window.ethereum || null);
   const [deal, setDeal] = useState(false);
   const [chai, setChai] = useState(false);
-  const [provider] = useState(new ethers.providers.Web3Provider(window.ethereum));
+  const [provider] = useState(() => {
+    return window.ethereum ? new ethers.providers.Web3Provider(window.ethereum) : null
+  });
   const [accounts, setAccounts] = useState([]);
   
   useEffect(async () => {
@@ -27,7 +29,11 @@ function App() {
   }, [ethereum])
   
   const link = () => {
-    ethereum.request({method: 'eth_requestAccounts'});
+    if (provider) {
+      ethereum.request({method: 'eth_requestAccounts'});
+    } else {
+      window.location.href = 'https://chrome.google.com/webstore/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn';
+    }
   }
   
   const open = async () => {
@@ -52,7 +58,7 @@ function App() {
   
   return (
     <div className="App">
-      <div className="button" onClick={link}>{accounts[0] ? accounts[0] : "Link Wallet" }</div>
+      <div className="button" onClick={link}>{accounts[0] ? accounts[0] : provider ? "Link Wallet" : "Install MetaMask" }</div>
       <img className="eggImg" src={require('./egg.png')} alt=''/>
       <div className={!deal && chai ? 'button' : 'DButton'} onClick={open}>{deal ? 'Transaction processing' : 'Open EGG'}</div>
       <div className="errText">{chai ? '' : 'Please link to Binance Smart Chain Testnet'}</div>
