@@ -1,23 +1,61 @@
-import logo from './logo.svg';
+import React, {useState, useEffect} from 'react';
+import {ethers} from "ethers";
+import abi from './abi'
 import './App.css';
 
 function App() {
+  const [ethereum] = useState(window.ethereum);
+  const [deal, setDeal] = useState(false);
+  const [chai, setChai] = useState(false);
+  const [provider] = useState(new ethers.providers.Web3Provider(window.ethereum));
+  const [accounts, setAccounts] = useState([]);
+  
+  useEffect(async () => {
+    if (ethereum) {
+      setAccounts(await ethereum.request({method: 'eth_requestAccounts'}));
+      setChai(await ethereum.request({ method: 'eth_chainId' }) === ethers.utils.hexValue(97));
+  
+      ethereum.on('accountsChanged', (acc) => {
+        setAccounts(acc);
+      });
+  
+      ethereum.on('chainChanged', (chainId) => {
+        setChai(chainId === ethers.utils.hexValue(97));
+      });
+  
+    }
+  }, [ethereum])
+  
+  const link = () => {
+    ethereum.request({method: 'eth_requestAccounts'});
+  }
+  
+  const open = async () => {
+    if (!accounts.length) {
+      await ethereum.request({method: 'eth_requestAccounts'});
+    }
+    if (!deal && chai) {
+      setDeal(true);
+      const contract = abi['EGG'];
+      const myContract = new ethers.Contract(contract.address, contract.abi, provider);
+      const signer = provider.getSigner()
+      const daiWithSigner = myContract.connect(signer);
+      try {
+        const tx = await daiWithSigner.openEgg({
+          value: ethers.utils.parseEther("0.0001")
+        });
+        console.log(tx);
+      } catch (e) {}
+      setDeal(false);
+    }
+  }
+  
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <div className="button" onClick={link}>{accounts[0] ? accounts[0] : "Link Wallet" }</div>
+      <img className="eggImg" src={require('./egg.png')} alt=''/>
+      <div className={!deal && chai ? 'button' : 'DButton'} onClick={open}>{deal ? 'Transaction processing' : 'Open EGG'}</div>
+      <div className="errText">{chai ? '' : 'Please link to Binance Smart Chain Testnet'}</div>
     </div>
   );
 }
